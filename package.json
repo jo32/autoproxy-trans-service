@@ -1,5 +1,5 @@
 {
-  "name": "gfwlist-pac-service",
+  "name": "autoproxy-trans-service",
   "version": "0.0.1",
   "description": "",
   "main": "build/app.js",
