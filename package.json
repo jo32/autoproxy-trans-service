@@ -1,0 +1,22 @@
+{
+  "name": "gfwlist-pac-service",
+  "version": "0.0.1",
+  "description": "",
+  "main": "build/app.js",
+  "dependencies": {
+    "autoproxy2pac": "^0.1.2",
+    "babel-runtime": "^5.8.25",
+    "express": "^4.13.3",
+    "q": "^1.4.1"
+  },
+  "devDependencies": {
+    "gulp-insert": "^0.5.0",
+    "gulp": "^3.9.0",
+    "gulp-babel": "^5.2.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT"
+}
