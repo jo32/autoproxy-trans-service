@@ -1,6 +1,9 @@
 var express = require('express');
 var app = express();
 var autoproxy2pac = require('autoproxy2pac');
+var Q = require('q');
+var fs = require('fs');
+var path = require('path');
 
 function log(message) {
     if (Object.prototype.toString.apply(message) == '[object Error]') {
@@ -34,6 +37,21 @@ function genTemplateGetter(isPrecise) {
     }
 }
 
+var getApnpTemplate = (function() {
+
+    var template = null;
+
+    return async function() {
+        if (template) {
+            return template;
+        }
+
+        template = await Q.nfcall(fs.readFile, path.join(__dirname, '../resources/apnp.mobileconfig'), 'utf-8');
+        return template;
+    };
+
+})();
+
 var fastPacGetter = genTemplateGetter(false);
 var precisePacGetter = genTemplateGetter(true);
 
@@ -53,17 +71,42 @@ app.get('/proxy.pac', function(req, res, next) {
     (async function() {
         try {
             var pac = null;
-            if (precise) {
+            if (!precise) {
                 pac = await fastPacGetter();
             } else {
                 pac = await precisePacGetter();
             }
             pac = pac.replace('__PROXY__', proxy);
             res.type('application/x-ns-proxy-autoconfig').send(pac);
+            return next();
         } catch (e) {
             return next(e);
         }
     })();
+});
+
+app.get('/apnp.mobileconfig', function(req, res, next) {
+
+    var server = req.query.server;
+    var port = req.query.port;
+
+    if (!server || !port) {
+        var err = new Error('parameter server or port is not given');
+        err.status = 403;
+        return next(err);
+    }
+
+    (async function() {
+        try {
+            var template = await getApnpTemplate();
+            var config = template.replace(/__SERVER__/g, server).replace(/__PORT__/g, port);
+            res.type('application/x-apple-aspen-config').send(config);
+            return next();
+        } catch (e) {
+            return next(e);
+        }
+    })();
+
 });
 
 app.use(function(err, req, res, next) {
