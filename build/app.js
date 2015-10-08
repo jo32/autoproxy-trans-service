@@ -10,27 +10,26 @@ var Q = require('q');
 var fs = require('fs');
 var path = require('path');
 
+function log(message) {
+    if (Object.prototype.toString.apply(message) == '[object Error]') {
+        console.error('[ERROR] ' + message.message);
+        console.error(message.stack);
+        return;
+    }
+    console.log('[INFO] ' + message);
+}
+
 function genTemplateGetter(isPrecise) {
     var pac = {
         content: null
     };
     // cleaning cache every 30min
-    setInterval(function () {
-        pac.content = null;
-    }, 1000 * 60 * 30);
-
-    return function callee$1$0() {
-        return _regeneratorRuntime.async(function callee$1$0$(context$2$0) {
+    function updatePac() {
+        return _regeneratorRuntime.async(function updatePac$(context$2$0) {
             while (1) switch (context$2$0.prev = context$2$0.next) {
                 case 0:
-                    if (!(pac.content != null)) {
-                        context$2$0.next = 2;
-                        break;
-                    }
-
-                    return context$2$0.abrupt('return', pac.content);
-
-                case 2:
+                    pac.content = null;
+                    log('cleaned cached of precise mode: ' + isPrecise);
                     context$2$0.next = 4;
                     return _regeneratorRuntime.awrap(autoproxy2pac.genPac({
                         proxy: '__PROXY__',
@@ -39,9 +38,25 @@ function genTemplateGetter(isPrecise) {
 
                 case 4:
                     pac.content = context$2$0.sent;
-                    return context$2$0.abrupt('return', pac.content);
+
+                    log('generated cached of precise mode: ' + isPrecise);
 
                 case 6:
+                case 'end':
+                    return context$2$0.stop();
+            }
+        }, null, this);
+    }
+    updatePac();
+    setInterval(updatePac, 1000 * 60 * 60);
+
+    return function callee$1$0() {
+        return _regeneratorRuntime.async(function callee$1$0$(context$2$0) {
+            while (1) switch (context$2$0.prev = context$2$0.next) {
+                case 0:
+                    return context$2$0.abrupt('return', pac.content);
+
+                case 1:
                 case 'end':
                     return context$2$0.stop();
             }
@@ -184,6 +199,7 @@ app.get('/apnp.mobileconfig', function (req, res, next) {
 
 app.use(function (err, req, res, next) {
     if (err) {
+        log(err);
         res.status(err.status).json({
             status: err.status,
             msg: err.message

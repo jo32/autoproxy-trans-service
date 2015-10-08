@@ -14,7 +14,6 @@ function log(message) {
     console.log('[INFO] ' + message);
 }
 
-
 function genTemplateGetter(isPrecise) {
     var pac = {
         content: null
