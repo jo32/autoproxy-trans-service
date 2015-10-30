@@ -20,13 +20,18 @@ function genTemplateGetter(isPrecise) {
     };
     // cleaning cache every 30min
     async function updatePac() {
-        pac.content = null;
-        log(`cleaned cached of precise mode: ${isPrecise}`);
-        pac.content = await autoproxy2pac.genPac({
+        var temp = await autoproxy2pac.genPac({
             proxy: '__PROXY__',
             precise: isPrecise
         });
-        log(`generated cached of precise mode: ${isPrecise}`);
+        if (temp) {
+            pac.content = null;
+            log(`cleaned cache of precise mode: ${isPrecise}`);
+            pac.content = temp;
+            log(`generated cache of precise mode: ${isPrecise}`);
+        } else {
+            log(`failed generating cache of precise mode: ${isPrecise}`);
+        }
     }
     updatePac();
     setInterval(updatePac, 1000 * 60 * 60);
@@ -108,11 +113,28 @@ app.get('/apnp.mobileconfig', function(req, res, next) {
 
 });
 
+app.get('/rules.surge', function(req, res, next) {
+
+    (async function() {
+        try {
+            var pac = await fastPacGetter();
+            var func = new Function(pac + '\n' + 'return domains;');
+            var domains = func();
+            res.type('text/plain').send(Object.keys(domains).map(function(val) {
+                return ['DOMAIN-SUFFIX', val, 'Proxy'].join(',');
+            }).join('\n'));
+            return next();
+        } catch (e) {
+            return next(e);
+        }
+    })();
+});
+
 app.use(function(err, req, res, next) {
     if (err) {
         log(err);
-        res.status(err.status).json({
-            status: err.status,
+        res.status(err.status || 500).json({
+            status: err.status || 500,
             msg: err.message
         });
     }

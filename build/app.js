@@ -3,6 +3,8 @@
 
 var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
 
+var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
+
 var express = require('express');
 var app = express();
 var autoproxy2pac = require('autoproxy2pac');
@@ -25,23 +27,29 @@ function genTemplateGetter(isPrecise) {
     };
     // cleaning cache every 30min
     function updatePac() {
+        var temp;
         return _regeneratorRuntime.async(function updatePac$(context$2$0) {
             while (1) switch (context$2$0.prev = context$2$0.next) {
                 case 0:
-                    pac.content = null;
-                    log('cleaned cached of precise mode: ' + isPrecise);
-                    context$2$0.next = 4;
+                    context$2$0.next = 2;
                     return _regeneratorRuntime.awrap(autoproxy2pac.genPac({
                         proxy: '__PROXY__',
                         precise: isPrecise
                     }));
 
+                case 2:
+                    temp = context$2$0.sent;
+
+                    if (temp) {
+                        pac.content = null;
+                        log('cleaned cache of precise mode: ' + isPrecise);
+                        pac.content = temp;
+                        log('generated cache of precise mode: ' + isPrecise);
+                    } else {
+                        log('failed generating cache of precise mode: ' + isPrecise);
+                    }
+
                 case 4:
-                    pac.content = context$2$0.sent;
-
-                    log('generated cached of precise mode: ' + isPrecise);
-
-                case 6:
                 case 'end':
                     return context$2$0.stop();
             }
@@ -197,11 +205,45 @@ app.get('/apnp.mobileconfig', function (req, res, next) {
     })();
 });
 
+app.get('/rules.surge', function (req, res, next) {
+
+    (function callee$1$0() {
+        var pac, func, domains;
+        return _regeneratorRuntime.async(function callee$1$0$(context$2$0) {
+            while (1) switch (context$2$0.prev = context$2$0.next) {
+                case 0:
+                    context$2$0.prev = 0;
+                    context$2$0.next = 3;
+                    return _regeneratorRuntime.awrap(fastPacGetter());
+
+                case 3:
+                    pac = context$2$0.sent;
+                    func = new Function(pac + '\n' + 'return domains;');
+                    domains = func();
+
+                    res.type('text/plain').send(_Object$keys(domains).map(function (val) {
+                        return ['DOMAIN-SUFFIX', val, 'Proxy'].join(',');
+                    }).join('\n'));
+                    return context$2$0.abrupt('return', next());
+
+                case 10:
+                    context$2$0.prev = 10;
+                    context$2$0.t0 = context$2$0['catch'](0);
+                    return context$2$0.abrupt('return', next(context$2$0.t0));
+
+                case 13:
+                case 'end':
+                    return context$2$0.stop();
+            }
+        }, null, this, [[0, 10]]);
+    })();
+});
+
 app.use(function (err, req, res, next) {
     if (err) {
         log(err);
-        res.status(err.status).json({
-            status: err.status,
+        res.status(err.status || 500).json({
+            status: err.status || 500,
             msg: err.message
         });
     }
